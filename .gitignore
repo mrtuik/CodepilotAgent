@@ -1,0 +1,10 @@
+debug.keystore
+# Android debug keystore should never be committed
+
+.kotlin/
+.gradle/
+local.properties
+build/
+app/build/
+*.iml
+.idea/
