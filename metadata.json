@@ -1,0 +1,6 @@
+{
+  "name": "CodePilot Agent",
+  "description": "AI-powered local project workspace built around Google AI Studio with code analysis, file planning, repair agent, diffs, and version control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
