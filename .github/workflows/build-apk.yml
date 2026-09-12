@@ -26,6 +26,9 @@ jobs:
             gradle wrapper --gradle-version 9.3.1
           fi
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Create .env file
         run: |
           if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
