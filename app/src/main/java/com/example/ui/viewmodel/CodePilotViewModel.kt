@@ -464,109 +464,114 @@ class CodePilotViewModel(application: Application) : AndroidViewModel(applicatio
     private val STREAMING_ACTIVITY_TITLE = "Generating in Google AI Studio..."
 
     // Last payload handed to processAiResponse, used to collapse streaming duplicates
+    @Volatile
     private var lastProcessedRawResponse: String? = null
 
     // True only while processAiResponse is actively narrating a run (not while a live placeholder waits)
+    @Volatile
     private var isProcessingRun = false
 
     // Prompt text captured from the AI Studio bridge before the input got cleared
+    @Volatile
     private var pendingUserPrompt: String? = null
+
+    // Bridge callbacks (prompt-sent, generation-started) arrive on the WebView JS thread and can
+    // interleave with each other and with the main thread. All run-start / navigation decisions go
+    // through this lock so the Plan screen opens exactly once, and always.
+    private val runStartLock = Any()
+
+    /**
+     * Single entry point for "a new AI Studio turn has begun".
+     *
+     * Whichever bridge signal arrives first (prompt sent, or the DOM generation edge) starts the
+     * run; later signals only enrich it. The Plan screen is opened on EVERY call, including
+     * duplicate deliveries and calls that land while a previous run is still being narrated —
+     * that unconditional navigation is what makes the Plan tab reliable.
+     */
+    private fun beginOrUpdateRun(prompt: String?, markWatching: Boolean) {
+        synchronized(runStartLock) {
+            val state = _uiState.value
+            val live = state.currentResponseRun?.takeIf { it.status == "running" }
+
+            // Only create a fresh run when nothing is live and no previous run is mid-narration;
+            // otherwise reuse what is there so the two callbacks can never create two runs.
+            var run: ResponseAgentRun? = live
+            if (run == null && !isProcessingRun) {
+                val runNumber = state.responseRunsHistory.size + 1
+                run = ResponseAgentRun(
+                    responseNumber = runNumber,
+                    startedAt = System.currentTimeMillis(),
+                    status = "running",
+                    summary = "Following AI Studio response #" + runNumber + "..."
+                )
+            }
+
+            if (run != null && prompt != null &&
+                run.activities.none { it.type == AgentActivityType.PROMPT_SENT }
+            ) {
+                run = run.copy(
+                    activities = listOf(
+                        AgentActivityItem(
+                            type = AgentActivityType.PROMPT_SENT,
+                            title = "You: " + prompt,
+                            detailText = prompt
+                        )
+                    ) + run.activities
+                )
+            }
+
+            if (run != null && markWatching &&
+                run.activities.none {
+                    it.type == AgentActivityType.THOUGHT && it.title == "Watching Google AI Studio..."
+                }
+            ) {
+                run = run.copy(
+                    activities = run.activities + AgentActivityItem(
+                        type = AgentActivityType.THOUGHT,
+                        title = "Watching Google AI Studio..."
+                    )
+                )
+            }
+
+            val startedRun = run
+            _uiState.update { current ->
+                if (startedRun == null) {
+                    // A previous run is still being narrated: navigate only, leave it untouched.
+                    current.copy(
+                        hasAiResponseArrived = true,
+                        currentScreen = Screen.PLAN
+                    )
+                } else {
+                    current.copy(
+                        hasAiResponseArrived = true,
+                        isAiProcessing = true,
+                        agentStatus = "Generating",
+                        currentScreen = Screen.PLAN,
+                        currentResponseRun = startedRun
+                    )
+                }
+            }
+        }
+    }
 
     /**
      * Called from the WebView bridge the moment the user sends a prompt in AI Studio.
-     * This is what STARTS the run: the Plan screen opens and the timer begins right here.
+     * Starts the run (or enriches one already started by the generation edge) and opens Plan.
      */
     fun onUserPromptSent(text: String) {
         val clean = text.trim()
         if (clean.isBlank()) return
         val shown = if (clean.length > 200) clean.take(200).trimEnd() + "..." else clean
         pendingUserPrompt = shown
-
-        val state = _uiState.value
-        val current = state.currentResponseRun
-
-        // A run is already live (e.g. duplicate bridge delivery): just make sure the prompt shows.
-        if (isProcessingRun || (current != null && current.status == "running")) {
-            if (current != null && current.status == "running" &&
-                current.activities.none { it.type == AgentActivityType.PROMPT_SENT }
-            ) {
-                val promptItem = AgentActivityItem(
-                    type = AgentActivityType.PROMPT_SENT,
-                    title = "You: " + shown,
-                    detailText = shown
-                )
-                val updated = current.copy(activities = listOf(promptItem) + current.activities)
-                _uiState.update { it.copy(currentResponseRun = updated) }
-            }
-            return
-        }
-
-        val runNumber = state.responseRunsHistory.size + 1
-        val liveRun = ResponseAgentRun(
-            responseNumber = runNumber,
-            startedAt = System.currentTimeMillis(),
-            status = "running",
-            summary = "Following AI Studio response #" + runNumber + "...",
-            activities = listOf(
-                AgentActivityItem(
-                    type = AgentActivityType.PROMPT_SENT,
-                    title = "You: " + shown,
-                    detailText = shown
-                )
-            )
-        )
-
-        _uiState.update {
-            it.copy(
-                hasAiResponseArrived = true,
-                isAiProcessing = true,
-                agentStatus = "Generating",
-                currentScreen = Screen.PLAN,
-                currentResponseRun = liveRun
-            )
-        }
+        beginOrUpdateRun(prompt = shown, markWatching = false)
     }
 
     /**
-     * Called from the WebView bridge on the false -> true generation edge.
-     * The run already exists (started in onUserPromptSent); just narrate it. Idempotent.
+     * Called from the WebView bridge on the false -> true generation edge. May arrive before,
+     * after, or instead of the prompt-sent callback. Idempotent.
      */
     fun onAiGenerationStarted() {
-        if (isProcessingRun) return
-        val state = _uiState.value
-        val current = state.currentResponseRun
-
-        val run = if (current != null && current.status == "running") {
-            current
-        } else {
-            // Fallback: generation observed without a captured prompt — start the run now.
-            ResponseAgentRun(
-                responseNumber = state.responseRunsHistory.size + 1,
-                startedAt = System.currentTimeMillis(),
-                status = "running",
-                summary = "Following AI Studio response #" + (state.responseRunsHistory.size + 1) + "..."
-            )
-        }
-
-        val alreadyWatching = run.activities.any {
-            it.type == AgentActivityType.THOUGHT && it.title == "Watching Google AI Studio..."
-        }
-        val updated = if (alreadyWatching) run else run.copy(
-            activities = run.activities + AgentActivityItem(
-                type = AgentActivityType.THOUGHT,
-                title = "Watching Google AI Studio..."
-            )
-        )
-
-        _uiState.update {
-            it.copy(
-                hasAiResponseArrived = true,
-                isAiProcessing = true,
-                agentStatus = "Generating",
-                currentScreen = Screen.PLAN,
-                currentResponseRun = updated
-            )
-        }
+        beginOrUpdateRun(prompt = pendingUserPrompt, markWatching = true)
     }
 
     /**
