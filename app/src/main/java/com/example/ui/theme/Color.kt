@@ -20,13 +20,13 @@ val BorderLight = Color(0xFFE4E4E7)
 
 // Status indicators (clean, subtle contrast)
 val StatusReady = Color(0xFF27272A)
-val StatusWarning = Color(0xFFD97706)
-val StatusError = Color(0xFFDC2626)
-val StatusActive = Color(0xFF2563EB)
+val StatusWarning = Color(0xFF71717A)
+val StatusError = Color(0xFF09090B)
+val StatusActive = Color(0xFF52525B)
 val StatusMuted = Color(0xFF71717A)
 
 // Diff colors
 val DiffAddBg = Color(0xFFF4F4F5)
 val DiffAddText = Color(0xFF27272A)
-val DiffRemoveBg = Color(0xFFFEF2F2)
-val DiffRemoveText = Color(0xFF991B1B)
+val DiffRemoveBg = Color(0xFFE4E4E7)
+val DiffRemoveText = Color(0xFF18181B)
