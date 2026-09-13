@@ -351,7 +351,7 @@ fun FloatingNavButton(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(RoundedCornerShape(1.dp))
-                        .background(if (isSelected) StatusReady else StatusActive)
+                        .background(if (isSelected) PureWhite else Zinc500)
                 )
             }
         }
