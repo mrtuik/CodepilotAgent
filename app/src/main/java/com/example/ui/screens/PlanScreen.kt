@@ -353,18 +353,13 @@ private fun LovableTimelineNode(
         ) {
             when (item.type) {
                 AgentActivityType.PROMPT_SENT -> {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = Zinc700,
-                        modifier = Modifier.size(15.dp)
-                    )
+                    Spacer(modifier = Modifier.size(0.dp))
                 }
                 AgentActivityType.THOUGHT -> {
                     Icon(
                         imageVector = Icons.Default.Lightbulb,
                         contentDescription = null,
-                        tint = Color(0xFFF59E0B),
+                        tint = Zinc500,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -412,7 +407,7 @@ private fun LovableTimelineNode(
                     Icon(
                         imageVector = Icons.Default.Code,
                         contentDescription = null,
-                        tint = Color(0xFFEA580C),
+                        tint = Zinc600,
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -449,22 +444,14 @@ private fun LovableTimelineNode(
         Column(modifier = Modifier.weight(1f)) {
             when (item.type) {
                 AgentActivityType.PROMPT_SENT -> {
-                    Surface(
-                        color = Zinc100,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, BorderLight, RoundedCornerShape(6.dp))
-                    ) {
-                        Text(
-                            text = item.title,
-                            fontSize = 12.sp,
-                            lineHeight = 17.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Zinc900,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
+                    Text(
+                        text = item.title.removePrefix("You: ").removePrefix("You:").trim(),
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Zinc900,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
                 }
                 AgentActivityType.THOUGHT -> {
                     Column {
@@ -537,16 +524,16 @@ private fun LovableTimelineNode(
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(
                                     when (item.type) {
-                                        AgentActivityType.FILE_CREATE -> Color(0xFFF0FDF4)
-                                        AgentActivityType.FILE_UPDATE -> Color(0xFFEFF6FF)
+                                        AgentActivityType.FILE_CREATE -> Zinc100
+                                        AgentActivityType.FILE_UPDATE -> Zinc100
                                         else -> Zinc100
                                     }
                                 )
                                 .border(
                                     1.dp,
                                     when (item.type) {
-                                        AgentActivityType.FILE_CREATE -> Color(0xFFBBF7D0)
-                                        AgentActivityType.FILE_UPDATE -> Color(0xFFBFDBFE)
+                                        AgentActivityType.FILE_CREATE -> BorderLight
+                                        AgentActivityType.FILE_UPDATE -> BorderLight
                                         else -> BorderLight
                                     },
                                     RoundedCornerShape(3.dp)
@@ -559,8 +546,8 @@ private fun LovableTimelineNode(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.Medium,
                                 color = when (item.type) {
-                                    AgentActivityType.FILE_CREATE -> Color(0xFF166534)
-                                    AgentActivityType.FILE_UPDATE -> Color(0xFF1E40AF)
+                                    AgentActivityType.FILE_CREATE -> Zinc900
+                                    AgentActivityType.FILE_UPDATE -> Zinc900
                                     else -> Zinc900
                                 },
                                 maxLines = 1,
@@ -576,7 +563,7 @@ private fun LovableTimelineNode(
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, Color(0xFFFDBA74), RoundedCornerShape(6.dp))
+                            .border(1.dp, BorderLight, RoundedCornerShape(6.dp))
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -584,14 +571,14 @@ private fun LovableTimelineNode(
                                     text = "${item.title} HTML",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF9A3412)
+                                    color = Zinc900
                                 )
                                 Spacer(modifier = Modifier.weight(1f))
                                 if (isRunning) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(10.dp),
                                         strokeWidth = 1.5.dp,
-                                        color = Color(0xFFEA580C)
+                                        color = Zinc600
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                 }
@@ -695,7 +682,7 @@ private fun ChangedOperationCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(3.dp))
-                    .background(if (isCreate) Color(0xFFF4F4F5) else Color(0xFFEFF6FF))
+                    .background(if (isCreate) Zinc100 else Zinc100)
                     .padding(horizontal = 6.dp, vertical = 3.dp)
             ) {
                 Text(
@@ -703,7 +690,7 @@ private fun ChangedOperationCard(
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
-                    color = if (isCreate) Color(0xFF047857) else Color(0xFF1D4ED8)
+                    color = if (isCreate) Zinc900 else Zinc900
                 )
             }
         }
